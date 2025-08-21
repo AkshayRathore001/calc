@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tubewell Duration Calculator</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f0f9ff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 15px;
+    }
+
+    .calculator {
+        background: #fff;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        max-width: 450px;
+        width: 100%;
+        text-align: center;
+    }
+
+    h1 {
+        margin-bottom: 15px;
+        font-size: 1.5rem;
+        color: #0072ff;
+    }
+
+    input, textarea {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        font-size: 15px;
+        margin-bottom: 12px;
+        box-sizing: border-box;
+    }
+
+    /* Cleaner rate input */
+    #rateInput {
+        width: 60%;
+        margin: 0 auto 15px auto;
+        text-align: center;
+        font-size: 16px;
+        padding: 8px;
+    }
+
+    /* Disable textarea resizing */
+    #timeInput {
+        min-height: 70px;
+        resize: none;
+    }
+
+    /* Remove +/- spinner from number inputs */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+
+    .buttons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    button {
+        padding: 12px 18px;
+        font-size: 15px;
+        background: #0072ff;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        flex: 1;
+        min-width: 120px;
+        transition: background 0.3s;
+    }
+
+    button:hover {
+        background: #005bb5;
+    }
+
+    .result {
+        margin-top: 15px;
+        font-size: 17px;
+        font-weight: bold;
+        color: #0072ff;
+        background: #eaf4ff;
+        padding: 12px;
+        border-radius: 8px;
+        word-wrap: break-word;
+    }
+
+    p.note {
+        margin-top: 5px;
+        font-size: 14px;
+        color: #555;
+    }
+
+    @media (max-width: 480px) {
+        h1 { font-size: 1.2rem; }
+        button { font-size: 14px; padding: 10px; min-width: 100px; }
+        input, textarea { font-size: 14px; padding: 9px; }
+        #rateInput { width: 80%; }
+        .calculator { padding: 15px; }
+    }
+</style>
+</head>
+<body>
+
+<div class="calculator">
+    <h1>Tubewell Duration Calculator</h1>
+    
+    <!-- Cleaner rate input -->
+    <input type="text" id="rateInput" placeholder="Enter rate per hour (₹)" inputmode="decimal">
+
+    <p class="note">Enter durations separated by commas.<br>
+    Use <b>hours.minutes</b> (1.30 = 1 hr 30 min) or <b>hours:minutes</b> (1:30)</p>
+    
+    <textarea id="timeInput" placeholder="Example: 1.30, 0.45, 2.05"></textarea>
+
+    <div class="buttons">
+        <button onclick="resetCalculator()">Reset</button>
+        <button onclick="calculateTotal()">Calculate</button>
+    </div>
+
+    <div class="result" id="totalHours">Total: 0 hrs 0 min</div>
+    <div class="result" id="totalCost" style="display:none;"></div>
+</div>
+
+<script>
+function calculateTotal() {
+    const input = document.getElementById('timeInput').value;
+    const rate = parseFloat(document.getElementById('rateInput').value) || 0;
+    const times = input.split(',').map(t => t.trim()).filter(t => t !== '');
+
+    let totalHours = 0;
+    let totalMinutes = 0;
+
+    for (let t of times) {
+        if (t.includes(':')) {
+            const [h, m] = t.split(':').map(Number);
+            totalHours += h || 0;
+            totalMinutes += m || 0;
+        } else if (t.includes('.')) {
+            const [h, m] = t.split('.').map(Number);
+            totalHours += h || 0;
+            totalMinutes += m || 0;
+        } else {
+            totalHours += parseInt(t) || 0;
+        }
+    }
+
+    totalHours += Math.floor(totalMinutes / 60);
+    totalMinutes = totalMinutes % 60;
+
+    const resultText = `Total: ${totalHours} hrs ${totalMinutes} min`;
+    document.getElementById('totalHours').innerText = resultText;
+
+    if (rate > 0) {
+        const decimalHours = totalHours + (totalMinutes / 60);
+        const totalAmount = (decimalHours * rate).toFixed(2);
+        document.getElementById('totalCost').style.display = "block";
+        document.getElementById('totalCost').innerText = `💰 Total Cost: ₹${totalAmount}`;
+    } else {
+        document.getElementById('totalCost').style.display = "none";
+    }
+
+    localStorage.setItem("tubewell_input", input);
+    localStorage.setItem("tubewell_rate", rate);
+    localStorage.setItem("tubewell_result", resultText);
+    localStorage.setItem("tubewell_cost", document.getElementById('totalCost').innerText);
+}
+
+function resetCalculator() {
+    document.getElementById('timeInput').value = "";
+    document.getElementById('totalHours').innerText = "Total: 0 hrs 0 min";
+    document.getElementById('totalCost').style.display = "none";
+
+    localStorage.removeItem("tubewell_input");
+    localStorage.removeItem("tubewell_result");
+    localStorage.removeItem("tubewell_cost");
+}
+
+window.onload = function() {
+    const savedInput = localStorage.getItem("tubewell_input");
+    const savedRate = localStorage.getItem("tubewell_rate");
+    const savedResult = localStorage.getItem("tubewell_result");
+    const savedCost = localStorage.getItem("tubewell_cost");
+
+    if (savedInput) document.getElementById('timeInput').value = savedInput;
+    if (savedRate) document.getElementById('rateInput').value = savedRate;
+    if (savedResult) document.getElementById('totalHours').innerText = savedResult;
+    if (savedCost && savedRate > 0) {
+        document.getElementById('totalCost').style.display = "block";
+        document.getElementById('totalCost').innerText = savedCost;
+    }
+}
+</script>
+
+</body>
+</html>
